@@ -138,22 +138,23 @@ placeholder="मूल्य (Rs.)">
 
 <script>
 let products = JSON.parse(
- localStorage.getItem("nb_products")
+  localStorage.getItem("nb_products")
 ) || [
- {id:1,name:"ढाका टोपी",price:350},
- {id:2,name:"नेपाली कुर्ता",price:2499},
- {id:3,name:"पस्मिना सल",price:4500},
- {id:4,name:"Wireless Earbuds",price:1899}
+  {id:1,name:"ढाका टोपी",price:350},
+  {id:2,name:"नेपाली कुर्ता",price:2499},
+  {id:3,name:"पस्मिना सल",price:4500},
+  {id:4,name:"Wireless Earbuds",price:1899}
 ];
 
 let cart = JSON.parse(
- localStorage.getItem("nb_cart")
+  localStorage.getItem("nb_cart")
 ) || [];
 
 let orders = JSON.parse(
- localStorage.getItem("nb_orders")
-) || 
-  function saveData(){
+  localStorage.getItem("nb_orders")
+) || [];
+
+function saveData(){
   localStorage.setItem("nb_products", JSON.stringify(products));
   localStorage.setItem("nb_cart", JSON.stringify(cart));
   localStorage.setItem("nb_orders", JSON.stringify(orders));
@@ -162,12 +163,14 @@ let orders = JSON.parse(
 
   if (user && user.uid === ADMIN_UID) {
     database.ref("products").set(products)
-      .catch(function(error) {
-        console.log("Firebase Error:", error.message);
+      .then(function(){
+        console.log("Firebase मा सामान सुरक्षित भयो");
+      })
+      .catch(function(error){
+        console.error("Firebase Error:", error);
       });
   }
-  }
-
+}
 function showPage(page){
  ["shop","cart","admin"].forEach(id=>{
   document.getElementById(id).classList.add("hidden");
@@ -266,37 +269,31 @@ function placeOrder(){
  showPage("shop");
 }
 
-function addProduct(){
- let name=document.getElementById("newName").value.trim();
- let price=Number(document.getElementById("newPrice").value);
+ function addProduct(){
+  let name = document.getElementById("newName").value.trim();
+  let price = Number(document.getElementById("newPrice").value);
 
- if(!name||!Number.isFinite(price)||price<=0){
-  alert("सही नाम र मूल्य राख्नुहोस्।");
-  return;
- }
-
- products.push({id:Date.now(),name,price});
-saveData();
-  localStorage.setItem("nb_products", JSON.stringify(products));
-  localStorage.setItem("nb_cart", JSON.stringify(cart));
-  localStorage.setItem("nb_orders", JSON.stringify(orders));
-
-  const user = firebase.auth().currentUser;
-
-  if (user && user.uid === ADMIN_UID) {
-    database.ref("products").set(products)
-      .catch(function(error) {
-        console.log("Firebase Error:", error.message);
-      });
+  if(!name || !Number.isFinite(price) || price <= 0){
+    alert("सही नाम र मूल्य राख्नुहोस्।");
+    return;
   }
-}
- document.getElementById("newName").value="";
- document.getElementById("newPrice").value="";
- renderAdmin();
- renderProducts();
- alert("सामान थपियो!");
-}
 
+  products.push({
+    id: Date.now(),
+    name: name,
+    price: price
+  });
+
+  saveData();
+
+  document.getElementById("newName").value = "";
+  document.getElementById("newPrice").value = "";
+
+  renderAdmin();
+  renderProducts();
+
+  alert("परीक्षण सामान थपियो!");
+}
 function deleteProduct(id){
  products=products.filter(p=>p.id!==id);
  saveData();
