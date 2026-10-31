@@ -266,7 +266,20 @@ function addProduct(){
  }
 
  products.push({id:Date.now(),name,price});
- saveData();
+ function saveData(){
+  localStorage.setItem("nb_products", JSON.stringify(products));
+  localStorage.setItem("nb_cart", JSON.stringify(cart));
+  localStorage.setItem("nb_orders", JSON.stringify(orders));
+
+  const user = firebase.auth().currentUser;
+
+  if (user && user.uid === ADMIN_UID) {
+    database.ref("products").set(products)
+      .catch(function(error) {
+        console.log("Firebase Error:", error.message);
+      });
+  }
+}
  document.getElementById("newName").value="";
  document.getElementById("newPrice").value="";
  renderAdmin();
