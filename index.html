@@ -1,13 +1,145 @@
-
-
 <!DOCTYPE html>
 <html lang="ne">
 <head>
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#dc2626">
+  <title>NepaliBazaar</title>
+
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f5f5f5;
+      color: #222;
+    }
+    header {
+      background: #dc2626;
+      color: white;
+      padding: 18px;
+    }
+    header h1 { margin: 0; }
+    nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 15px;
+    }
+    button {
+      border: 0;
+      padding: 11px 15px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    nav button { background: white; color: #dc2626; }
+    main { padding: 16px; max-width: 1000px; margin: auto; }
+    .products {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+    .card, .panel {
+      background: white;
+      padding: 14px;
+      border-radius: 12px;
+      box-shadow: 0 2px 6px #ddd;
+      margin-bottom: 12px;
+    }
+    .price { color: #dc2626; font-weight: bold; }
+    .primary {
+      background: #dc2626;
+      color: white;
+      width: 100%;
+    }
+    .secondary { background: #333; color: white; }
+    input {
+      width: 100%;
+      padding: 12px;
+      margin: 7px 0 14px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+    }
+    .hidden { display: none !important; }
+    footer { text-align: center; padding: 25px; color: #777; }
+    @media (min-width: 650px) {
+      .products { grid-template-columns: repeat(3, 1fr); }
+    }
+  </style>
+</head>
+
+<body>
+<header>
+  <h1>🛍️ NepaliBazaar</h1>
+  <p>नेपालकै आफ्नै अनलाइन बजार</p>
+  <nav>
+    <button onclick="showPage('shop')">Shopping</button>
+    <button onclick="showPage('cart')">
+      My Cart (<span id="cartCount">0</span>)
+    </button>
+    <button onclick="showPage('admin')">Admin</button>
+  </nav>
+</header>
+
+<main>
+  <section id="shop">
+    <h2>हाम्रा सामानहरू</h2>
+    <input id="search" placeholder="सामान खोज्नुहोस्..."
+           oninput="renderProducts()">
+    <div class="products" id="productList"></div>
+  </section>
+
+  <section id="cart" class="hidden">
+    <h2>मेरो Cart</h2>
+    <div id="cartItems"></div>
+    <h3 id="total">कुल: Rs. 0</h3>
+    <button class="secondary" onclick="clearCart()">Cart खाली गर्नुहोस्</button>
+    <p>यो परीक्षण Cart मात्र हो। वास्तविक अर्डर वा भुक्तानी सुविधा जोडिएको छैन।</p>
+  </section>
+
+  <section id="admin" class="hidden">
+    <div class="panel" id="adminLoginBox">
+      <h3>Admin Login</h3>
+      <input id="adminEmail" type="email" placeholder="Admin Email">
+      <input id="adminPassword" type="password" placeholder="Password">
+      <button class="primary" onclick="adminLogin()">Login</button>
+      <p id="loginMessage"></p>
+    </div>
+
+    <div id="adminDashboard" class="hidden">
+      <h2>Admin Dashboard</h2>
+      <button class="secondary" onclick="adminLogout()">Logout</button>
+
+      <div class="panel">
+        <h3>नयाँ सामान थप्नुहोस्</h3>
+        <input id="newName" placeholder="सामानको नाम">
+        <input id="newPrice" type="number" min="1" placeholder="मूल्य (Rs.)">
+        <button class="primary" onclick="addProduct()">सामान थप्नुहोस्</button>
+        <p id="saveMessage"></p>
+      </div>
+
+      <div class="panel">
+        <h3>सामानहरूको सूची</h3>
+        <div id="adminProducts"></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <p>© 2026 NepaliBazaar</p>
+  <p>Demo Shopping Website</p>
+</footer>
 
 <script>
+"use strict";
+
+/* Firebase Configuration */
 const firebaseConfig = {
   apiKey: "AIzaSyCOIe1Mcxgank_9v5-5x0yEwAbLcpmV51E",
   authDomain: "nepalibazaar-28ee5.firebaseapp.com",
@@ -18,262 +150,207 @@ const firebaseConfig = {
   appId: "1:478094673128:web:fd854fd7c3b83022de755d"
 };
 
-firebase.initializeApp(firebaseConfig);
-const database = firebase.database();
-</script>
-<link rel="manifest" href="./manifest.json">
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#dc2626">
-<title>NepaliBazaar - Online Shopping</title>
+/* यहाँ आफ्नो Firebase Admin UID राख्नुहोस् */
+const ADMIN_UID = "PASTE_YOUR_ADMIN_UID_HERE";
 
+let database = null;
+let firebaseReady = false;
 
-<style>
-*{box-sizing:border-box}
-body{margin:0;font-family:Arial,sans-serif;background:#f5f5f5;color:#222}
-header{background:#dc2626;color:white;padding:18px}
-header h1{margin:0}
-nav{display:flex;gap:10px;margin-top:15px}
-button{border:0;padding:11px 15px;border-radius:8px;cursor:pointer;font-weight:bold}
-nav button{background:white;color:#dc2626}
-main{padding:16px;max-width:1000px;margin:auto}
-input,select{width:100%;padding:12px;margin:7px 0 14px;border:1px solid #ddd;border-radius:8px}
-.products{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
-.card{background:white;padding:14px;border-radius:12px;box-shadow:0 2px 6px #ddd}
-.card h3{font-size:16px}
-.price{color:#dc2626;font-weight:bold}
-.primary{background:#dc2626;color:white;width:100%}
-.secondary{background:#333;color:white}
-.panel{background:white;padding:16px;border-radius:12px;margin-top:15px}
-.hidden{display:none}
-footer{text-align:center;padding:25px;color:#777}
-@media(min-width:650px){.products{grid-template-columns:repeat(3,1fr)}}
-</style>
-</head>
+try {
+  if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+  }
+  database = firebase.database();
+  firebaseReady = true;
+} catch (error) {
+  console.error("Firebase सुरु भएन:", error);
+}
 
-<body>
-
-<header>
-<h1>🛍️ NepaliBazaar</h1>
-<p>नेपालकै आफ्नै अनलाइन बजार</p>
-<nav>
-<button onclick="showPage('shop')">Shopping</button>
-<button onclick="showPage('cart')">My Cart (<span id="cartCount">0</span>)</button>
-<button onclick="showPage('admin')">Admin</button>
-</nav>
-</header>
-
-<main>
-
-<!-- CUSTOMER SHOP -->
-<section id="shop">
-<h2>हाम्रा सामानहरू</h2>
-<input id="search" placeholder="सामान खोज्नुहोस्..."
-oninput="renderProducts()">
-<div class="products" id="productList"></div>
-</section>
-
-<!-- CART -->
-<section id="cart" class="hidden">
-<h2>मेरो Cart</h2>
-<div id="cartItems"></div>
-<h3 id="total">कुल: Rs. 0</h3>
-
-<div class="panel">
-<h3>अर्डर विवरण</h3>
-<input id="customerName" placeholder="तपाईंको नाम">
-<input id="customerPhone" placeholder="फोन नम्बर"
-type="tel">
-<input id="customerAddress" placeholder="पूरा ठेगाना">
-<button class="primary" onclick="placeOrder()">
-अर्डर गर्नुहोस्
-</button>
-</div>
-</section>
-
-<!-- ADMIN -->
-<section id="admin" class="hidden">
-  <div class="panel" id="adminLoginBox">
-  <h3>Admin Login</h3>
-  <input id="adminEmail" type="email" placeholder="Admin Email">
-  <input id="adminPassword" type="password" placeholder="Password">
-  <button class="primary" onclick="adminLogin()">
-    Login
-  </button>
-  <p id="loginMessage"></p>
-  </div>
-  <div id="adminDashboard" class="hidden">
-<h2>Admin Dashboard</h2>
-<p>सामान व्यवस्थापन</p>
-
-<div class="panel">
-<h3>नयाँ सामान थप्नुहोस्</h3>
-<input id="newName" placeholder="सामानको नाम">
-<input id="newPrice" type="number"
-placeholder="मूल्य (Rs.)">
-<button class="primary" onclick="addProduct()">
-सामान थप्नुहोस्
-</button>
-</div>
-
-<div class="panel">
-<h3>सामानहरूको सूची</h3>
-<div id="adminProducts"></div>
-</div>
-
-<div class="panel">
-<h3>ग्राहकका अर्डरहरू</h3>
-<div id="orderList"></div>
-</div>
-    
-</div>
-</section>
-
-</main>
-
-<footer>
-<p>© 2026 NepaliBazaar</p>
-<p>Happy Shopping ❤️</p>
-</footer>
-
-<script>
-let products = JSON.parse(
-  localStorage.getItem("nb_products")
-) || [
-  {id:1,name:"ढाका टोपी",price:350},
-  {id:2,name:"नेपाली कुर्ता",price:2499},
-  {id:3,name:"पस्मिना सल",price:4500},
-  {id:4,name:"Wireless Earbuds",price:1899}
+/* प्रारम्भिक सामान */
+const defaultProducts = [
+  { id: 1, name: "ढाका टोपी", price: 350 },
+  { id: 2, name: "नेपाली कुर्ता", price: 2499 },
+  { id: 3, name: "पस्मिना सल", price: 4500 },
+  { id: 4, name: "Wireless Earbuds", price: 1899 }
 ];
 
-let cart = JSON.parse(
-  localStorage.getItem("nb_cart")
-) || [];
+let products = defaultProducts;
+let cart = [];
 
-let orders = JSON.parse(
-  localStorage.getItem("nb_orders")
-) || [];
+try {
+  const savedProducts = JSON.parse(localStorage.getItem("nb_products"));
+  const savedCart = JSON.parse(localStorage.getItem("nb_cart"));
+  if (Array.isArray(savedProducts)) products = savedProducts;
+  if (Array.isArray(savedCart)) cart = savedCart;
+} catch (error) {
+  console.log("स्थानीय डाटा पढ्न सकिएन।");
+}
 
-function saveData(){
+function safe(value) {
+  return String(value).replace(/[&<>"']/g, function(c) {
+    return {
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;"
+    }[c];
+  });
+}
+
+function saveLocalData() {
   localStorage.setItem("nb_products", JSON.stringify(products));
   localStorage.setItem("nb_cart", JSON.stringify(cart));
-  localStorage.setItem("nb_orders", JSON.stringify(orders));
+}
 
+function saveProductsToFirebase() {
   const user = firebase.auth().currentUser;
 
+  if (!user || user.uid !== ADMIN_UID) {
+    alert("Admin Login आवश्यक छ।");
+    return;
+  }
+
+  database.ref("products").set(products)
+    .then(function() {
+      document.getElementById("saveMessage").textContent =
+        "Firebase मा सामान सुरक्षित भयो।";
+    })
+    .catch(function(error) {
+      document.getElementById("saveMessage").textContent =
+        "Firebase त्रुटि: " + error.message;
+    });
+}
+
+function showPage(page) {
+  ["shop", "cart", "admin"].forEach(function(id) {
+    document.getElementById(id).classList.add("hidden");
+  });
+
+  document.getElementById(page).classList.remove("hidden");
+
+  if (page === "cart") renderCart();
+  if (page === "admin") updateAdminView();
+}
+
+function renderProducts() {
+  const keyword = document.getElementById("search").value.toLowerCase();
+
+  const filtered = products.filter(function(p) {
+    return String(p.name).toLowerCase().includes(keyword);
+  });
+
+  document.getElementById("productList").innerHTML =
+    filtered.map(function(p) {
+      return `
+        <div class="card">
+          <h3>${safe(p.name)}</h3>
+          <p class="price">Rs. ${Number(p.price).toLocaleString()}</p>
+          <button class="primary" onclick="addCart(${Number(p.id)})">
+            Cart मा राख्नुहोस्
+          </button>
+        </div>
+      `;
+    }).join("") || "सामान भेटिएन।";
+}
+
+function addCart(id) {
+  const product = products.find(function(p) {
+    return Number(p.id) === Number(id);
+  });
+
+  if (!product) return;
+
+  cart.push(Number(id));
+  saveLocalData();
+  updateCount();
+  alert("सामान Cart मा थपियो!");
+}
+
+function updateCount() {
+  document.getElementById("cartCount").textContent = cart.length;
+}
+
+function renderCart() {
+  let total = 0;
+
+  const html = cart.map(function(id, index) {
+    const p = products.find(function(item) {
+      return Number(item.id) === Number(id);
+    });
+
+    if (!p) return "";
+
+    total += Number(p.price);
+
+    return `
+      <div class="panel">
+        ${safe(p.name)} - Rs. ${Number(p.price).toLocaleString()}
+        <button onclick="removeCart(${index})">हटाउनुहोस्</button>
+      </div>
+    `;
+  }).join("");
+
+  document.getElementById("cartItems").innerHTML =
+    html || "तपाईंको Cart खाली छ।";
+
+  document.getElementById("total").textContent =
+    "कुल: Rs. " + total.toLocaleString();
+}
+
+function removeCart(index) {
+  cart.splice(index, 1);
+  saveLocalData();
+  updateCount();
+  renderCart();
+}
+
+function clearCart() {
+  cart = [];
+  saveLocalData();
+  updateCount();
+  renderCart();
+}
+
+function adminLogin() {
+  const email = document.getElementById("adminEmail").value.trim();
+  const password = document.getElementById("adminPassword").value;
+  const message = document.getElementById("loginMessage");
+
+  if (!email || !password) {
+    message.textContent = "Email र Password भर्नुहोस्।";
+    return;
+  }
+
+  if (!firebaseReady) {
+    message.textContent = "Firebase जडान भएन।";
+    return;
+  }
+
+  firebase.auth().signInWithEmailAndPassword(email, password)
+    .catch(function(error) {
+      message.textContent = "Login असफल भयो। विवरण जाँच गर्नुहोस्।";
+      console.error(error);
+    });
+}
+
+function adminLogout() {
+  firebase.auth().signOut();
+}
+
+function updateAdminView() {
+  const user = firebaseReady ? firebase.auth().currentUser : null;
+
   if (user && user.uid === ADMIN_UID) {
-    database.ref("products").set(products)
-      .then(function(){
-        console.log("Firebase मा सामान सुरक्षित भयो");
-      })
-      .catch(function(error){
-        console.error("Firebase Error:", error);
-      });
+    renderAdmin();
   }
 }
-function showPage(page){
- ["shop","cart","admin"].forEach(id=>{
-  document.getElementById(id).classList.add("hidden");
- });
- document.getElementById(page).classList.remove("hidden");
 
- if(page==="cart") renderCart();
- if(page==="admin") renderAdmin();
-}
+function addProduct() {
+  const name = document.getElementById("newName").value.trim();
+  const price = Number(document.getElementById("newPrice").value);
 
-function renderProducts(){
- let keyword=document.getElementById("search").value.toLowerCase();
- let list=products.filter(p=>p.name.toLowerCase().includes(keyword));
-
- document.getElementById("productList").innerHTML=list.map(p=>`
-  <div class="card">
-   <h3>${safe(p.name)}</h3>
-   <p class="price">Rs. ${p.price.toLocaleString()}</p>
-   <button class="primary" onclick="addCart(${p.id})">
-    Cart मा राख्नुहोस्
-   </button>
-  </div>
- `).join("") || "सामान भेटिएन।";
-}
-
-function addCart(id){
- cart.push(id);
- saveData();
- updateCount();
- alert("सामान Cart मा थपियो!");
-}
-
-function updateCount(){
- document.getElementById("cartCount").textContent=cart.length;
-}
-
-function renderCart(){
- let total=0;
- let html=cart.map((id,index)=>{
-  let p=products.find(x=>x.id===id);
-  if(!p)return "";
-  total+=p.price;
-  return `<div class="panel">
-   ${safe(p.name)} - Rs. ${p.price.toLocaleString()}
-   <button onclick="removeCart(${index})">हटाउनुहोस्</button>
-  </div>`;
- }).join("");
-
- document.getElementById("cartItems").innerHTML=
- html || "तपाईंको Cart खाली छ।";
-
- document.getElementById("total").textContent=
- "कुल: Rs. "+total.toLocaleString();
-}
-
-function removeCart(index){
- cart.splice(index,1);
- saveData();
- updateCount();
- renderCart();
-}
-
-function placeOrder(){
- let name=document.getElementById("customerName").value.trim();
- let phone=document.getElementById("customerPhone").value.trim();
- let address=document.getElementById("customerAddress").value.trim();
-
- if(!name||!phone||!address||cart.length===0){
-  alert("कृपया सबै विवरण भर्नुहोस् र सामान Cart मा राख्नुहोस्।");
-  return;
- }
-
- let items=cart.map(id=>{
-  let p=products.find(x=>x.id===id);
-  return p?{name:p.name,price:p.price}:null;
- }).filter(Boolean);
-
- let total=items.reduce((sum,p)=>sum+p.price,0);
-
- orders.push({
-  id:"NP-"+Date.now(),
-  name,phone,address,items,total,
-  status:"नयाँ अर्डर",
-  payment:"Cash on Delivery"
- });
-
- cart=[];
- saveData();
- updateCount();
-
- document.getElementById("customerName").value="";
- document.getElementById("customerPhone").value="";
- document.getElementById("customerAddress").value="";
-
- alert("तपाईंको Demo अर्डर सुरक्षित भयो!");
- showPage("shop");
-}
-
- function addProduct(){
-  let name = document.getElementById("newName").value.trim();
-  let price = Number(document.getElementById("newPrice").value);
-
-  if(!name || !Number.isFinite(price) || price <= 0){
+  if (!name || !Number.isFinite(price) || price <= 0) {
     alert("सही नाम र मूल्य राख्नुहोस्।");
     return;
   }
@@ -284,98 +361,77 @@ function placeOrder(){
     price: price
   });
 
-  saveData();
+  saveLocalData();
+  renderProducts();
+  renderAdmin();
 
   document.getElementById("newName").value = "";
   document.getElementById("newPrice").value = "";
 
-  renderAdmin();
+  saveProductsToFirebase();
+}
+
+function deleteProduct(id) {
+  products = products.filter(function(p) {
+    return Number(p.id) !== Number(id);
+  });
+
+  saveLocalData();
   renderProducts();
-
-  alert("परीक्षण सामान थपियो!");
-}
-function deleteProduct(id){
- products=products.filter(p=>p.id!==id);
- saveData();
- renderAdmin();
- renderProducts();
+  renderAdmin();
+  saveProductsToFirebase();
 }
 
-function renderAdmin(){
- document.getElementById("adminProducts").innerHTML=
- products.map(p=>`
- <div class="panel">
- ${safe(p.name)} - Rs. ${p.price.toLocaleString()}
- <button onclick="deleteProduct(${p.id})">Delete</button>
- </div>`).join("") || "सामान छैन।";
-
- document.getElementById("orderList").innerHTML=
- orders.map(o=>`
- <div class="panel">
- <b>${safe(o.id)}</b><br>
- ग्राहक: ${safe(o.name)}<br>
- फोन: ${safe(o.phone)}<br>
- ठेगाना: ${safe(o.address)}<br>
- सामान: ${o.items.map(p=>safe(p.name)).join(", ")}<br>
- जम्मा: Rs. ${o.total.toLocaleString()}<br>
- स्थिति: ${safe(o.status)}<br>
- भुक्तानी: ${safe(o.payment)}
- </div>`).join("") || "अहिलेसम्म अर्डर आएको छैन।";
+function renderAdmin() {
+  document.getElementById("adminProducts").innerHTML =
+    products.map(function(p) {
+      return `
+        <div class="panel">
+          ${safe(p.name)} - Rs. ${Number(p.price).toLocaleString()}
+          <button onclick="deleteProduct(${Number(p.id)})">Delete</button>
+        </div>
+      `;
+    }).join("") || "सामान छैन।";
 }
 
-function safe(value){
- return String(value).replace(/[&<>"']/g,c=>({
-  "&":"&amp;","<":"&lt;",">":"&gt;",
-  '"':"&quot;","'":"&#39;"
- }[c]));
-}
+/* Firebase बाट सामान पढ्ने */
+if (firebaseReady) {
+  database.ref("products").on("value", function(snapshot) {
+    const data = snapshot.val();
 
-renderProducts();
-updateCount();
-</script>
-  <script>
-const ADMIN_UID = "IppURwwbZJTz799N5zyYW1ZLUHG3";
+    if (Array.isArray(data)) {
+      products = data.filter(function(p) {
+        return p && p.name && Number(p.price) > 0;
+      });
+      saveLocalData();
+      renderProducts();
+      updateAdminView();
+    }
+  }, function(error) {
+    console.error("Firebase Read Error:", error);
+  });
 
-function adminLogin() {
-  const email = document.getElementById("adminEmail").value;
-  const password = document.getElementById("adminPassword").value;
-  const message = document.getElementById("loginMessage");
+  firebase.auth().onAuthStateChanged(function(user) {
+    const isAdmin = !!(user && user.uid === ADMIN_UID);
 
-  firebase.auth().signInWithEmailAndPassword(email, password)
-    .catch(function(error) {
-      message.textContent = "Login असफल भयो। विवरण जाँच गर्नुहोस्।";
-    });
-}
+    document.getElementById("adminLoginBox").classList.toggle(
+      "hidden", isAdmin
+    );
+    document.getElementById("adminDashboard").classList.toggle(
+      "hidden", !isAdmin
+    );
 
-firebase.auth().onAuthStateChanged(function(user) {
-  const loginBox = document.getElementById("adminLoginBox");
-  const dashboard = document.getElementById("adminDashboard");
-
-  if (user && user.uid === ADMIN_UID) {
-    loginBox.classList.add("hidden");
-    dashboard.classList.remove("hidden");
-  } else {
-    dashboard.classList.add("hidden");
-    loginBox.classList.remove("hidden");
-
-    if (user) {
+    if (user && !isAdmin) {
       firebase.auth().signOut();
     }
-  }
-});
-  </script>
-<script>
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", function () {
-    navigator.serviceWorker.register("./service-worker.js")
-      .then(function () {
-        console.log("NepaliBazaar Offline Ready");
-      })
-      .catch(function (error) {
-        console.log("Service Worker Error:", error);
-      });
+
+    if (isAdmin) renderAdmin();
   });
 }
+
+/* वेबसाइट सुरु */
+renderProducts();
+updateCount();
 </script>
 </body>
 </html>
