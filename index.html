@@ -1,0 +1,287 @@
+
+<!DOCTYPE html>
+<html lang="ne">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#dc2626">
+<title>NepaliBazaar - Online Shopping</title>
+
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#f5f5f5;color:#222}
+header{background:#dc2626;color:white;padding:18px}
+header h1{margin:0}
+nav{display:flex;gap:10px;margin-top:15px}
+button{border:0;padding:11px 15px;border-radius:8px;cursor:pointer;font-weight:bold}
+nav button{background:white;color:#dc2626}
+main{padding:16px;max-width:1000px;margin:auto}
+input,select{width:100%;padding:12px;margin:7px 0 14px;border:1px solid #ddd;border-radius:8px}
+.products{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.card{background:white;padding:14px;border-radius:12px;box-shadow:0 2px 6px #ddd}
+.card h3{font-size:16px}
+.price{color:#dc2626;font-weight:bold}
+.primary{background:#dc2626;color:white;width:100%}
+.secondary{background:#333;color:white}
+.panel{background:white;padding:16px;border-radius:12px;margin-top:15px}
+.hidden{display:none}
+footer{text-align:center;padding:25px;color:#777}
+@media(min-width:650px){.products{grid-template-columns:repeat(3,1fr)}}
+</style>
+</head>
+
+<body>
+
+<header>
+<h1>🛍️ NepaliBazaar</h1>
+<p>नेपालकै आफ्नै अनलाइन बजार</p>
+<nav>
+<button onclick="showPage('shop')">Shopping</button>
+<button onclick="showPage('cart')">My Cart (<span id="cartCount">0</span>)</button>
+<button onclick="showPage('admin')">Admin</button>
+</nav>
+</header>
+
+<main>
+
+<!-- CUSTOMER SHOP -->
+<section id="shop">
+<h2>हाम्रा सामानहरू</h2>
+<input id="search" placeholder="सामान खोज्नुहोस्..."
+oninput="renderProducts()">
+<div class="products" id="productList"></div>
+</section>
+
+<!-- CART -->
+<section id="cart" class="hidden">
+<h2>मेरो Cart</h2>
+<div id="cartItems"></div>
+<h3 id="total">कुल: Rs. 0</h3>
+
+<div class="panel">
+<h3>अर्डर विवरण</h3>
+<input id="customerName" placeholder="तपाईंको नाम">
+<input id="customerPhone" placeholder="फोन नम्बर"
+type="tel">
+<input id="customerAddress" placeholder="पूरा ठेगाना">
+<button class="primary" onclick="placeOrder()">
+अर्डर गर्नुहोस्
+</button>
+</div>
+</section>
+
+<!-- ADMIN -->
+<section id="admin" class="hidden">
+<h2>Admin Dashboard</h2>
+<p>सामान व्यवस्थापन</p>
+
+<div class="panel">
+<h3>नयाँ सामान थप्नुहोस्</h3>
+<input id="newName" placeholder="सामानको नाम">
+<input id="newPrice" type="number"
+placeholder="मूल्य (Rs.)">
+<button class="primary" onclick="addProduct()">
+सामान थप्नुहोस्
+</button>
+</div>
+
+<div class="panel">
+<h3>सामानहरूको सूची</h3>
+<div id="adminProducts"></div>
+</div>
+
+<div class="panel">
+<h3>ग्राहकका अर्डरहरू</h3>
+<div id="orderList"></div>
+</div>
+</section>
+
+</main>
+
+<footer>
+<p>© 2026 NepaliBazaar</p>
+<p>Happy Shopping ❤️</p>
+</footer>
+
+<script>
+let products = JSON.parse(
+ localStorage.getItem("nb_products")
+) || [
+ {id:1,name:"ढाका टोपी",price:350},
+ {id:2,name:"नेपाली कुर्ता",price:2499},
+ {id:3,name:"पस्मिना सल",price:4500},
+ {id:4,name:"Wireless Earbuds",price:1899}
+];
+
+let cart = JSON.parse(
+ localStorage.getItem("nb_cart")
+) || [];
+
+let orders = JSON.parse(
+ localStorage.getItem("nb_orders")
+) || [];
+
+function saveData(){
+ localStorage.setItem("nb_products",JSON.stringify(products));
+ localStorage.setItem("nb_cart",JSON.stringify(cart));
+ localStorage.setItem("nb_orders",JSON.stringify(orders));
+}
+
+function showPage(page){
+ ["shop","cart","admin"].forEach(id=>{
+  document.getElementById(id).classList.add("hidden");
+ });
+ document.getElementById(page).classList.remove("hidden");
+
+ if(page==="cart") renderCart();
+ if(page==="admin") renderAdmin();
+}
+
+function renderProducts(){
+ let keyword=document.getElementById("search").value.toLowerCase();
+ let list=products.filter(p=>p.name.toLowerCase().includes(keyword));
+
+ document.getElementById("productList").innerHTML=list.map(p=>`
+  <div class="card">
+   <h3>${safe(p.name)}</h3>
+   <p class="price">Rs. ${p.price.toLocaleString()}</p>
+   <button class="primary" onclick="addCart(${p.id})">
+    Cart मा राख्नुहोस्
+   </button>
+  </div>
+ `).join("") || "सामान भेटिएन।";
+}
+
+function addCart(id){
+ cart.push(id);
+ saveData();
+ updateCount();
+ alert("सामान Cart मा थपियो!");
+}
+
+function updateCount(){
+ document.getElementById("cartCount").textContent=cart.length;
+}
+
+function renderCart(){
+ let total=0;
+ let html=cart.map((id,index)=>{
+  let p=products.find(x=>x.id===id);
+  if(!p)return "";
+  total+=p.price;
+  return `<div class="panel">
+   ${safe(p.name)} - Rs. ${p.price.toLocaleString()}
+   <button onclick="removeCart(${index})">हटाउनुहोस्</button>
+  </div>`;
+ }).join("");
+
+ document.getElementById("cartItems").innerHTML=
+ html || "तपाईंको Cart खाली छ।";
+
+ document.getElementById("total").textContent=
+ "कुल: Rs. "+total.toLocaleString();
+}
+
+function removeCart(index){
+ cart.splice(index,1);
+ saveData();
+ updateCount();
+ renderCart();
+}
+
+function placeOrder(){
+ let name=document.getElementById("customerName").value.trim();
+ let phone=document.getElementById("customerPhone").value.trim();
+ let address=document.getElementById("customerAddress").value.trim();
+
+ if(!name||!phone||!address||cart.length===0){
+  alert("कृपया सबै विवरण भर्नुहोस् र सामान Cart मा राख्नुहोस्।");
+  return;
+ }
+
+ let items=cart.map(id=>{
+  let p=products.find(x=>x.id===id);
+  return p?{name:p.name,price:p.price}:null;
+ }).filter(Boolean);
+
+ let total=items.reduce((sum,p)=>sum+p.price,0);
+
+ orders.push({
+  id:"NP-"+Date.now(),
+  name,phone,address,items,total,
+  status:"नयाँ अर्डर",
+  payment:"Cash on Delivery"
+ });
+
+ cart=[];
+ saveData();
+ updateCount();
+
+ document.getElementById("customerName").value="";
+ document.getElementById("customerPhone").value="";
+ document.getElementById("customerAddress").value="";
+
+ alert("तपाईंको Demo अर्डर सुरक्षित भयो!");
+ showPage("shop");
+}
+
+function addProduct(){
+ let name=document.getElementById("newName").value.trim();
+ let price=Number(document.getElementById("newPrice").value);
+
+ if(!name||!Number.isFinite(price)||price<=0){
+  alert("सही नाम र मूल्य राख्नुहोस्।");
+  return;
+ }
+
+ products.push({id:Date.now(),name,price});
+ saveData();
+ document.getElementById("newName").value="";
+ document.getElementById("newPrice").value="";
+ renderAdmin();
+ renderProducts();
+ alert("सामान थपियो!");
+}
+
+function deleteProduct(id){
+ products=products.filter(p=>p.id!==id);
+ saveData();
+ renderAdmin();
+ renderProducts();
+}
+
+function renderAdmin(){
+ document.getElementById("adminProducts").innerHTML=
+ products.map(p=>`
+ <div class="panel">
+ ${safe(p.name)} - Rs. ${p.price.toLocaleString()}
+ <button onclick="deleteProduct(${p.id})">Delete</button>
+ </div>`).join("") || "सामान छैन।";
+
+ document.getElementById("orderList").innerHTML=
+ orders.map(o=>`
+ <div class="panel">
+ <b>${safe(o.id)}</b><br>
+ ग्राहक: ${safe(o.name)}<br>
+ फोन: ${safe(o.phone)}<br>
+ ठेगाना: ${safe(o.address)}<br>
+ सामान: ${o.items.map(p=>safe(p.name)).join(", ")}<br>
+ जम्मा: Rs. ${o.total.toLocaleString()}<br>
+ स्थिति: ${safe(o.status)}<br>
+ भुक्तानी: ${safe(o.payment)}
+ </div>`).join("") || "अहिलेसम्म अर्डर आएको छैन।";
+}
+
+function safe(value){
+ return String(value).replace(/[&<>"']/g,c=>({
+  "&":"&amp;","<":"&lt;",">":"&gt;",
+  '"':"&quot;","'":"&#39;"
+ }[c]));
+}
+
+renderProducts();
+updateCount();
+</script>
+
+</body>
+</html>
