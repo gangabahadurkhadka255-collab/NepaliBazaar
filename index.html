@@ -152,13 +152,21 @@ let cart = JSON.parse(
 
 let orders = JSON.parse(
  localStorage.getItem("nb_orders")
-) || [];
+) || 
+  function saveData(){
+  localStorage.setItem("nb_products", JSON.stringify(products));
+  localStorage.setItem("nb_cart", JSON.stringify(cart));
+  localStorage.setItem("nb_orders", JSON.stringify(orders));
 
-function saveData(){
- localStorage.setItem("nb_products",JSON.stringify(products));
- localStorage.setItem("nb_cart",JSON.stringify(cart));
- localStorage.setItem("nb_orders",JSON.stringify(orders));
-}
+  const user = firebase.auth().currentUser;
+
+  if (user && user.uid === ADMIN_UID) {
+    database.ref("products").set(products)
+      .catch(function(error) {
+        console.log("Firebase Error:", error.message);
+      });
+  }
+  }
 
 function showPage(page){
  ["shop","cart","admin"].forEach(id=>{
