@@ -358,8 +358,62 @@ function updateAdminView() {
     renderAdmin();
   }
 }
+let selectedImage = "";
 
-function addProduct() {
+function previewImage() {
+  const file = document.getElementById("newImage").files[0];
+  const preview = document.getElementById("imagePreview");
+
+  if (!file) return;
+
+  if (!file.type.startsWith("image/")) {
+    alert("कृपया फोटो मात्र छान्नुहोस्।");
+    return;
+  }
+
+  if (file.size > 5 * 1024 * 1024) {
+    alert("५ MB भन्दा सानो फोटो छान्नुहोस्।");
+    return;
+  }
+
+  const reader = new FileReader();
+
+  reader.onload = function(event) {
+    const img = new Image();
+
+    img.onload = function() {
+      const canvas = document.createElement("canvas");
+      const maxSize = 600;
+
+      let width = img.width;
+      let height = img.height;
+
+      if (width > height && width > maxSize) {
+        height = Math.round(height * maxSize / width);
+        width = maxSize;
+      } else if (height > maxSize) {
+        width = Math.round(width * maxSize / height);
+        height = maxSize;
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, width, height);
+
+      selectedImage = canvas.toDataURL("image/jpeg", 0.6);
+
+      preview.src = selectedImage;
+      preview.classList.remove("hidden");
+    };
+
+    img.src = event.target.result;
+  };
+
+  reader.readAsDataURL(file);
+}
+ function addProduct() {
   const name = document.getElementById("newName").value.trim();
   const price = Number(document.getElementById("newPrice").value);
 
@@ -368,20 +422,33 @@ function addProduct() {
     return;
   }
 
-  products.push({
+  if (!selectedImage) {
+    alert("पहिले सामानको फोटो छान्नुहोस्।");
+    return;
+  }
+
+  const product = {
     id: Date.now(),
     name: name,
-    price: price
-  });
+    price: price,
+    image: selectedImage
+  };
 
+  products.push(product);
   saveLocalData();
   renderProducts();
   renderAdmin();
+  saveProductsToFirebase();
 
   document.getElementById("newName").value = "";
   document.getElementById("newPrice").value = "";
+  document.getElementById("newImage").value = "";
 
-  saveProductsToFirebase();
+  selectedImage = "";
+
+  const preview = document.getElementById("imagePreview");
+  preview.src = "";
+  preview.classList.add("hidden");
 }
 
 function deleteProduct(id) {
