@@ -257,11 +257,11 @@ function renderProducts() {
     filtered.map(function(p) {
       return `
         <div class="card">
-          ${p.image ? `
-            <img src="${p.image}"
-                 alt="${safe(p.name)}"
-                 style="width:100%;height:150px;object-fit:contain;border-radius:8px;">
-          ` : ""}
+          <img
+            src="${p.image || ''}"
+            alt="${safe(p.name)}"
+            style="width:100%;height:180px;object-fit:contain;display:${p.image ? 'block' : 'none'}"
+          >
           <h3>${safe(p.name)}</h3>
           <p class="price">Rs. ${Number(p.price).toLocaleString()}</p>
           <button class="primary" onclick="addCart(${Number(p.id)})">
