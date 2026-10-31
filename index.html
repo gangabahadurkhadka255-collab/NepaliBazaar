@@ -276,7 +276,7 @@ function addProduct(){
  }
 
  products.push({id:Date.now(),name,price});
- function saveData(){
+saveData();
   localStorage.setItem("nb_products", JSON.stringify(products));
   localStorage.setItem("nb_cart", JSON.stringify(cart));
   localStorage.setItem("nb_orders", JSON.stringify(orders));
