@@ -91,6 +91,16 @@ type="tel">
 
 <!-- ADMIN -->
 <section id="admin" class="hidden">
+  <div class="panel" id="adminLoginBox">
+  <h3>Admin Login</h3>
+  <input id="adminEmail" type="email" placeholder="Admin Email">
+  <input id="adminPassword" type="password" placeholder="Password">
+  <button class="primary" onclick="adminLogin()">
+    Login
+  </button>
+  <p id="loginMessage"></p>
+  </div>
+  <div id="adminDashboard" class="hidden">
 <h2>Admin Dashboard</h2>
 <p>सामान व्यवस्थापन</p>
 
@@ -301,6 +311,37 @@ function safe(value){
 renderProducts();
 updateCount();
 </script>
+  <script>
+const ADMIN_UID = "IppURwwbZJTz799N5zyYW1ZLUHG3";
+
+function adminLogin() {
+  const email = document.getElementById("adminEmail").value;
+  const password = document.getElementById("adminPassword").value;
+  const message = document.getElementById("loginMessage");
+
+  firebase.auth().signInWithEmailAndPassword(email, password)
+    .catch(function(error) {
+      message.textContent = "Login असफल भयो। विवरण जाँच गर्नुहोस्।";
+    });
+}
+
+firebase.auth().onAuthStateChanged(function(user) {
+  const loginBox = document.getElementById("adminLoginBox");
+  const dashboard = document.getElementById("adminDashboard");
+
+  if (user && user.uid === ADMIN_UID) {
+    loginBox.classList.add("hidden");
+    dashboard.classList.remove("hidden");
+  } else {
+    dashboard.classList.add("hidden");
+    loginBox.classList.remove("hidden");
+
+    if (user) {
+      firebase.auth().signOut();
+    }
+  }
+});
+  </script>
 <script>
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", function () {
