@@ -119,6 +119,20 @@
         <h3>नयाँ सामान थप्नुहोस्</h3>
         <input id="newName" placeholder="सामानको नाम">
         <input id="newPrice" type="number" min="1" placeholder="मूल्य (Rs.)">
+        <label>सामानको फोटो छान्नुहोस्</label>
+<input
+  id="newImage"
+  type="file"
+  accept="image/*"
+  onchange="previewImage()"
+>
+
+<img
+  id="imagePreview"
+  class="hidden"
+  style="width:150px;max-height:150px;object-fit:contain"
+  alt="फोटो Preview"
+>
         <button class="primary" onclick="addProduct()">सामान थप्नुहोस्</button>
         <p id="saveMessage"></p>
       </div>
